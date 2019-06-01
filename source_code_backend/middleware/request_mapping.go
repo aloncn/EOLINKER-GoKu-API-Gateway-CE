@@ -161,6 +161,7 @@ func CreateRequest(g *goku.Context,httpRequest *http.Request,httpResponse http.R
     for key, values := range backendHeaders {
 		requ.SetHeader(key, values...)
     }
+	requ.SetHeader("User-IP", httpRequest.RemoteAddr)
 	for key, values := range backendQueryParams {
 		requ.SetQueryParam(key, values...)
 	}
