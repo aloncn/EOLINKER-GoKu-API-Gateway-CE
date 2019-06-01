@@ -60,26 +60,49 @@ func GetVisitCount(url string) map[string]interface{}{
 }
 
 func RestartGatewayService(port string) (bool){
-    command := `netstat -tlnp | grep ` + port + `| awk '{print $7}'`
-	cmd := exec.Command("/bin/bash", "-c",command)
-	
-	if out, err := cmd.Output(); err != nil {
-        panic(err) 
-    }else {
-        id  := strings.Split(string(out),"/")[0]
-        command = `kill -9 ` + id
-        cmd = exec.Command("/bin/bash", "-c",command)
-        if _, err := cmd.Output(); err != nil {
-            return false
-        }
-        command = "nohup ./goku-ce -c " + ConfFilepath + "> goku-ce.log 2>&1 &"
-        cmd := exec.Command("/bin/bash", "-c",command)
-         
-        if _, err := cmd.Output(); err != nil {
-            return false
-        }
-        return true
-    }
+	if runtime.GOOS != "darwin" {
+		command := `netstat -tlnp | grep ` + port + `| awk '{print $7}'`
+		cmd := exec.Command("/bin/bash", "-c",command)
+
+		if out, err := cmd.Output(); err != nil {
+			panic(err)
+		}else {
+			id  := strings.Split(string(out),"/")[0]
+			command = `kill -9 ` + id
+			cmd = exec.Command("/bin/bash", "-c",command)
+			if _, err := cmd.Output(); err != nil {
+				return false
+			}
+			command = "nohup ./goku-ce -c " + ConfFilepath + "> goku-ce.log 2>&1 &"
+			cmd := exec.Command("/bin/bash", "-c",command)
+
+			if _, err := cmd.Output(); err != nil {
+				return false
+			}
+			return true
+		}
+	}else{
+		command := `lsof -n -i:`+ port +` |grep LISTEN|awk '{print $2;}'`
+		cmd := exec.Command("/bin/bash","-c",command)
+		if out, err := cmd.Output(); err != nil {
+			panic(err)
+		}else {
+			id  := strings.ReplaceAll(string(out),"\n","")
+			command = `kill -9 ` + id
+			cmd = exec.Command("/bin/bash", "-c",command)
+			if _, err := cmd.Output(); err != nil {
+				return false
+			}
+			command = "nohup ./goku-ce -c " + ConfFilepath + "> goku-ce.log 2>&1 &"
+			cmd := exec.Command("/bin/bash", "-c",command)
+
+			if _, err := cmd.Output(); err != nil {
+				return false
+			}
+			return true
+		}
+	}
+
 }
 
 func StartGatewayService(port string) (bool){
@@ -101,25 +124,47 @@ func StartGatewayService(port string) (bool){
 
 // 关闭后端服务
 func StopGatewayService(port string,force bool) (bool){
-    command := `netstat -tlnp | grep ` + port + `| awk '{print $7}'`
-	cmd := exec.Command("/bin/bash", "-c",command)
-	
-	if out, err := cmd.Output(); err != nil {
-        panic(err) 
-    }else {
-        id  := strings.Split(string(out),"/")[0]
-        if force {
-            command = `kill -9 ` + id
-        } else {
-            command = `kill -HUP ` + id
-        }
-        cmd = exec.Command("/bin/bash", "-c",command)
-        if _, err := cmd.Output(); err != nil {
-            fmt.Println(port)
-            return false
-        }
-        return true
-    }
+	if runtime.GOOS != "darwin" {
+		command := `netstat -tlnp | grep ` + port + `| awk '{print $7}'`
+		cmd := exec.Command("/bin/bash", "-c",command)
+
+		if out, err := cmd.Output(); err != nil {
+			panic(err)
+		}else {
+			id  := strings.Split(string(out),"/")[0]
+			if force {
+				command = `kill -9 ` + id
+			} else {
+				command = `kill -HUP ` + id
+			}
+			cmd = exec.Command("/bin/bash", "-c",command)
+			if _, err := cmd.Output(); err != nil {
+				fmt.Println(port)
+				return false
+			}
+			return true
+		}
+	}else{
+		command := `lsof -n -i:`+ port +` |grep LISTEN|awk '{print $2;}'`
+		cmd := exec.Command("/bin/bash","-c",command)
+		if out, err := cmd.Output(); err != nil {
+			panic(err)
+		}else {
+			id  := strings.ReplaceAll(string(out),"\n","")
+			if force {
+				command = `kill -9 ` + id
+			} else {
+				command = `kill -HUP ` + id
+			}
+			cmd = exec.Command("/bin/bash", "-c",command)
+			if _, err := cmd.Output(); err != nil {
+				fmt.Println(port)
+				return false
+			}
+			return true
+		}
+	}
+
 }
 
 func GetGatewayServiceStatus(port string) (bool){
@@ -130,9 +175,6 @@ func GetGatewayServiceStatus(port string) (bool){
 			panic(err)
 		}else {
 			id  := strings.Split(string(out),"/")[0]
-			fmt.Println("command", command)
-			fmt.Println("out", String(out))
-			fmt.Println("id", id)
 			if id != "" {
 				return true
 			} else {
@@ -145,7 +187,7 @@ func GetGatewayServiceStatus(port string) (bool){
 		if out, err := cmd.Output(); err != nil {
 			panic(err)
 		}else {
-			id  := String(out)
+			id  := strings.ReplaceAll(string(out),"\n","")
 			if id != "" {
 				return true
 			} else {
