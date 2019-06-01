@@ -1,5 +1,6 @@
 package utils
 import (
+	"runtime"
 	"strings"
 	"fmt"
 	"encoding/hex"
@@ -122,19 +123,37 @@ func StopGatewayService(port string,force bool) (bool){
 }
 
 func GetGatewayServiceStatus(port string) (bool){
-    command := `netstat -tlnp | grep ` + port + `| awk '{print $7}'`
-	cmd := exec.Command("/bin/bash", "-c",command)
-	
-	if out, err := cmd.Output(); err != nil {
-        panic(err) 
-    }else {
-        id  := strings.Split(string(out),"/")[0]
-        if id != "" {
-            return true
-        } else {
-            return false
-        }
-    }
+	if runtime.GOOS != "darwin" {
+		command := `netstat -tlnp | grep ` + port + `| awk '{print $7}'`
+		cmd := exec.Command("/bin/bash", "-c",command)
+		if out, err := cmd.Output(); err != nil {
+			panic(err)
+		}else {
+			id  := strings.Split(string(out),"/")[0]
+			fmt.Println("command", command)
+			fmt.Println("out", String(out))
+			fmt.Println("id", id)
+			if id != "" {
+				return true
+			} else {
+				return false
+			}
+		}
+	}else{
+		command := `lsof -n -i:`+ port +` |grep LISTEN|awk '{print $2;}'`
+		cmd := exec.Command("/bin/bash","-c",command)
+		if out, err := cmd.Output(); err != nil {
+			panic(err)
+		}else {
+			id  := String(out)
+			if id != "" {
+				return true
+			} else {
+				return false
+			}
+		}
+	}
+
 }
 
 /**
